@@ -2,7 +2,7 @@ from serial import Serial
 from threading import Thread
 from time import sleep
 
-class messager():
+class Messager():
     def __init__(self, port, baud = 115200):
         '''Initializes a messager instance.
         Arguments:
@@ -14,31 +14,56 @@ class messager():
         except:
             print _("Cannot open the port:" + str(port))
             raise
+
+        # every send action must be followed by _listen action
+        self.sendable = False # whether or not the send function can work.
         
         self.listen = Thread(target = self._listen)
         #self.listen.setDaemon(True)
         self.listen.start()
 
     def _listen(self):
-        '''This function read the messages from Arduino board.
-        '''
+        '''This function read the messages from Arduino board.'''
+        sleep(0.1)
         while self.port.isOpen():
-            print self.port.readline(),
-                    
+            recv = self.port.readline()
+            if recv.startswith('ERROR'):
+                print recv,
+            elif recv.startswith('DONE'):
+                print recv,
+                self.sendable = True
+            else:
+                print recv,
+                
+
+    def _checksum(self, command):
+        '''Compute the checksum of command string'''
+        return reduce(lambda x, y: x ^ y, map(ord, command))
+    
     def send(self, command):
+        '''Send a Command string to Serial port.
+        the argument command is a string.'''
+        while not self.sendable:
+            sleep(0.001)
+        command = command + '*' + str(self._checksum(command))
         self.port.write(command + '\n')
+        self.sendable = False
         
     def disconnect(self):
+        '''Close the Serial port of messager.'''
         if None != self.port:
             self.port.close()
 
+
 if __name__ == '__main__':
-    mess = messager('COM4')
-    sleep(2) # the delay is necessary for listen thread to startup.
-    mess.send("aa")
-    sleep(0.5)
-    mess.send('aaa')
-    sleep(0.5)
-    mess.send('aaaa')
-    sleep(0.5)
-    mess.disconnect()
+    messager = Messager('COM4')
+    messager.send("nihao;seeyou")
+    #sleep(1)
+    #messager.send("world.")
+    #sleep(1)
+    #messager.send("hey!")
+    #sleep(1)
+    #messager.send("hello")
+
+    sleep(0.1)
+    messager.disconnect()
