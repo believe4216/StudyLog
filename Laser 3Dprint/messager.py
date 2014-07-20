@@ -57,13 +57,10 @@ class Messager():
 
 if __name__ == '__main__':
     messager = Messager('COM4')
-    messager.send("nihao;seeyou")
-    #sleep(1)
-    #messager.send("world.")
-    #sleep(1)
-    #messager.send("hey!")
-    #sleep(1)
-    #messager.send("hello")
+    
+    # in the future, only the string "HOME" and float data will be sent.
+    messager.send("-1.55")
+    #messager.send("HOME")
 
     sleep(0.1)
     messager.disconnect()

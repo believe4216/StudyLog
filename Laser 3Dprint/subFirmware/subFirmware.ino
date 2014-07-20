@@ -1,11 +1,25 @@
+#include <AccelStepper.h>
 
 #define BAUDRATE 115200   //serial port baudrate
 #define BUFFER_LEN 128       //Buffer length
+
+#define Z_STEP_PIN 3
+#define Z_DIR_PIN 6
+#define Z_ENABLE_PIN 22
+#define Z_MIN_PIN 24      //home endstop
+#define Z_MAX_PIN 26      
+#define HEATER_BED_PIN 8
+#define TEMP_BED_PIN 14
+
 
 char cmd_buffer[BUFFER_LEN];   //Buffer for cmd read from serial port
 boolean done_read = false;     //the reading status of cmd_buffer
 boolean done_check = false;    //the checksum status of command
 boolean error_occur = false;   //the error status in working
+
+const float setps_per_mm = 100;  //for the motor of motion stage
+
+AccelStepper Zmotor(1, Z_STEP_PIN, Z_DIR_PIN);
 
 //=========================Routines========================
 //=========>>>Function: setup()<<<==============
@@ -13,6 +27,8 @@ void setup()
 {
   Serial.begin(BAUDRATE);
   Serial.println("DONE: Initialization.");
+  Zmotor.setMaxSpeed(100);
+  Zmotor.setSpeed(10);
   Serial.println("Start working.");
 }
 
@@ -22,6 +38,7 @@ void loop()
   read_cmd();    //read a command string from serial port
   check_sum();   //check the command string
   proc_cmd();    //process the command string
+  Zmotor.runSpeed();
 }
 
 //==========>>>Function: read_cmd()<<<=============
