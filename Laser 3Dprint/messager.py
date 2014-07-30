@@ -1,6 +1,7 @@
 from serial import Serial
 from threading import Thread
 from time import sleep
+import threading
 
 class Messager():
     def __init__(self, port, baud = 115200):
@@ -18,6 +19,9 @@ class Messager():
         # every send action must be followed by _listen action
         self.sendable = False # whether or not the send function can work.
         
+        self.lock = threading.Lock()
+        #This Lock manage the usage of shared variables by main thread and listen thread.
+        
         self.listen = Thread(target = self._listen)
         #self.listen.setDaemon(True)
         self.listen.start()
@@ -25,19 +29,22 @@ class Messager():
     def _listen(self):
         '''This function read the messages from Arduino board.'''
         print 'wait a few seconds...'
-        sleep(1)
+        sleep(0.01)
         while self.port.isOpen():
             recv = self.port.readline()
-            print recv,
+            #print recv,
+            #self.port.flushInput()
+            
             if recv.startswith('ERROR'):
-                #print recv,
-                self.sendable = True
+                print recv,
             elif recv.startswith('READY'):
-                #print recv,
-                self.sendable = True
+                print recv,
+                if self.lock.acquire():
+                    #print self.sendable
+                    self.sendable = True
+                    self.lock.release()
             else:
-                #print recv,
-                self.sendable = True
+                print recv,
                 
 
     def _checksum(self, command):
@@ -51,7 +58,10 @@ class Messager():
             sleep(0.001)
         command = command + '*' + str(self._checksum(command))
         self.port.write(command + '\n')
-        self.sendable = False
+        if self.lock.acquire():
+            #print self.sendable
+            self.sendable = False
+            self.lock.release()
         
     def disconnect(self):
         '''Close the Serial port of messager.'''
@@ -85,12 +95,21 @@ class Messager():
 if __name__ == '__main__':
     messager = Messager('COM4')
     
-    messager._send("-1.55")
-    messager.home()
-    #messager.move(5.53)
-    
-    while not messager.sendable:
-        print "wait.",
-        sleep(1)
-        pass
+    #messager._send("-1.55")
+    #messager.home()
+    messager.move(-0.1)
+
+
+
+
+    #########################################
+    sleep(5)
+    while True:
+        if messager.lock.acquire():
+            #print messager.sendable
+            if messager.sendable:
+                break
+            sleep(0.1)
+            messager.lock.release()
+            
     messager.disconnect()

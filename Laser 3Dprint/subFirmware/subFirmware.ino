@@ -23,7 +23,7 @@ RSET        # Reset the system status.
 #define SLEEP_PIN    26
 
 #define STEPS_PER_MM 1000
-
+#define MAX_POSITION -50000     // Maxmium steps of the moving range -downwards, +upwards.
 //#define HEATER_PIN 8
 //#define TEMP_PIN 14
 
@@ -134,13 +134,19 @@ void proc_cmd()
     return;
 
   if (find_str("HOME")) {
-    doHome();
+    do_home();
+    done_read = false;
+    done_check = false;
+    Serial.println("READY");
+    return;
   }
   else if (find_str("MOVE")) {
-    Serial.println(cmd_buffer);
     float distance = find_value();
-    Serial.print("Process MOVE:");
-    Serial.println(distance);
+    do_move(distance);
+    done_read = false;
+    done_check = false;
+    Serial.println("READY");
+    return;
   }
   else if (find_str("GETP")) {
     Serial.println("Process GETP.");
@@ -159,7 +165,7 @@ void proc_cmd()
   
   
   
-  Serial.println("DONE: this command");
+  Serial.println("An useless command");
   // excute the cmd and set ready_proc = false
   done_read = false;
   done_check = false;
@@ -183,10 +189,10 @@ long compute_steps(float dist)
   return (long)(dist*STEPS_PER_MM);
 }
 
-void doHome()
+void do_home()
 {
   MotorWake();
-  Motor.setSpeed(-500);
+  Motor.setSpeed(200);
   while (true){
     Motor.runSpeed();
     if (digitalRead(HOME_PIN) == HIGH){
@@ -195,9 +201,22 @@ void doHome()
       break;
     }
   }
-  Serial.println(Motor.currentPosition());
   Motor.setCurrentPosition(0);
-  Serial.println(Motor.currentPosition());
+  MotorSleep();
+}
+
+void do_move(float distance)
+{
+  Serial.print("Process MOVE:\t");
+  Serial.println(distance);
+  MotorWake();
+  long steps = (long)(distance*STEPS_PER_MM);
+  Motor.move(steps);
+  if (Motor.targetPosition() < MAX_POSITION){
+    Motor.moveTo(MAX_POSITION);
+  }
+  Motor.setSpeed(200);
+  Motor.runToPosition();
   MotorSleep();
 }
 
