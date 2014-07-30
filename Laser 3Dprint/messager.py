@@ -97,7 +97,8 @@ if __name__ == '__main__':
     
     #messager._send("-1.55")
     #messager.home()
-    messager.move(-0.1)
+    messager.move(-5.33)
+    messager.get_position()
 
 
 

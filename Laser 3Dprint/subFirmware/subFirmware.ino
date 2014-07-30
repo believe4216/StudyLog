@@ -149,7 +149,12 @@ void proc_cmd()
     return;
   }
   else if (find_str("GETP")) {
-    Serial.println("Process GETP.");
+    Serial.print("P");
+    Serial.println(((float)Motor.currentPosition())/STEPS_PER_MM);
+    done_read = false;
+    done_check = false;
+    Serial.println("READY");
+    return;
   }
   else if (find_str("SETT")) {
     float temperature = find_value();
